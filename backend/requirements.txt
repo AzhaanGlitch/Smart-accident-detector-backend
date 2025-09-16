@@ -1,0 +1,7 @@
+flask==3.0.3
+flask-cors==4.0.1
+tensorflow==2.16.1  # Or your version; check compatibility
+numpy==1.26.4
+pillow==10.4.0
+geopy==2.4.1
+gunicorn==22.0.0  # For production server
