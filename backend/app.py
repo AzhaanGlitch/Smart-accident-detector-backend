@@ -15,8 +15,8 @@ CORS(app)  # Enable CORS for all routes
 # Global config from your testing.py
 img_size = (224, 224)
 class_names = ['accident', 'non_accident']
-FINAL_MODEL_PATH = 'accident_detection_model.h5'
-BEST_MODEL_PATH = 'best_model.h5'
+FINAL_MODEL_PATH = r"D:\Smart Accident Detector Backend\backend\machine_learning\accident_detection_model.h5"
+BEST_MODEL_PATH = r"D:\Smart Accident Detector Backend\backend\machine_learning\best_model.h5"
 RESULTS_LOG_PATH = 'prediction_results.json'
 
 # Load models once at startup
