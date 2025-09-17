@@ -31,6 +31,7 @@ def lazy_load_dependencies():
     """Load heavy dependencies only when needed"""
     global tf, np, Image, model_final, model_best
     
+    # This check ensures the heavy loading process only runs once
     if tf is None:
         try:
             import tensorflow as tf
@@ -56,12 +57,9 @@ def load_models():
             # Direct paths in root directory
             'accident_detection_model.h5',
             'best_model.h5',
-            # Paths in machine_learning subdirectory (YOUR ACTUAL STRUCTURE)
+            # Paths in machine_learning subdirectory
             'machine_learning/accident_detection_model.h5',
             'machine_learning/best_model.h5',
-            # Alternative paths as fallback
-            os.path.join('machine_learning', 'accident_detection_model.h5'),
-            os.path.join('machine_learning', 'best_model.h5')
         ]
         
         final_model_path = None
@@ -71,17 +69,10 @@ def load_models():
         current_dir = os.getcwd()
         logger.info(f"Current working directory: {current_dir}")
         
-        # List all files in current directory
-        if os.path.exists('.'):
-            root_files = os.listdir('.')
-            logger.info(f"Files in root directory: {root_files}")
-        
         # Check machine_learning directory
         if os.path.exists('machine_learning'):
             ml_files = os.listdir('machine_learning')
             logger.info(f"Files in machine_learning directory: {ml_files}")
-        else:
-            logger.warning("machine_learning directory not found")
         
         # Check which model files exist
         for path in possible_paths:
@@ -107,7 +98,6 @@ def load_models():
             
     except Exception as e:
         logger.error(f"Error loading models: {e}")
-        # Print more detailed error information
         import traceback
         logger.error(f"Full traceback: {traceback.format_exc()}")
 
@@ -168,11 +158,18 @@ def get_location():
     except:
         return "Location unavailable"
 
+# Load results history on startup
+load_results_history()
+
+# FIX: Eagerly load models at startup to prevent request timeouts on cold starts.
+logger.info("Application starting up. Eagerly loading ML models and dependencies...")
+lazy_load_dependencies()
+
+
 @app.route('/', methods=['GET'])
 def health_check():
     """Health check endpoint with system info"""
-    
-    # Check current working directory and list files
+    # ... (rest of the function is unchanged)
     current_dir = os.getcwd()
     files_in_root = []
     try:
@@ -180,14 +177,12 @@ def health_check():
     except Exception as e:
         files_in_root = [f"Error: {str(e)}"]
     
-    # Check for model files
     model_files = []
     for root, dirs, files in os.walk(current_dir):
         for file in files:
             if file.endswith('.h5'):
                 model_files.append(os.path.join(root, file))
     
-    # System info
     system_info = {
         'python_version': sys.version,
         'current_directory': current_dir,
@@ -199,18 +194,16 @@ def health_check():
         }
     }
     
-    # Try to get ML library versions
     ml_info = {}
     try:
-        if lazy_load_dependencies():
-            ml_info = {
-                'tensorflow_available': tf is not None,
-                'tensorflow_version': tf.__version__ if tf else 'Not loaded',
-                'models_loaded': {
-                    'final_model': model_final is not None,
-                    'best_model': model_best is not None
-                }
+        ml_info = {
+            'tensorflow_available': tf is not None,
+            'tensorflow_version': tf.__version__ if tf else 'Not loaded',
+            'models_loaded': {
+                'final_model': model_final is not None,
+                'best_model': model_best is not None
             }
+        }
     except Exception as e:
         ml_info = {'error': str(e)}
     
@@ -234,8 +227,6 @@ def simple_test():
 @app.route('/predict', methods=['POST', 'OPTIONS'])
 def predict():
     """Predict accident from uploaded image"""
-    
-    # Handle preflight OPTIONS request
     if request.method == 'OPTIONS':
         return '', 200
     
@@ -247,62 +238,31 @@ def predict():
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
         
-        # Check if dependencies can be loaded
-        if not lazy_load_dependencies():
-            return jsonify({'error': 'ML dependencies not available'}), 500
-        
-        # Check if at least one model is loaded
-        if model_final is None and model_best is None:
-            # FALLBACK: Return mock prediction if models aren't available
+        if not lazy_load_dependencies() or (model_final is None and model_best is None):
             logger.warning("Models not available, returning mock prediction")
-            
             import random
-            
-            # Generate realistic mock predictions
             is_accident = random.choice([True, False])
             confidence_final = random.uniform(70, 95)
             confidence_best = random.uniform(70, 95)
-            
             result = {
-                'final_model': {
-                    'prediction': 'accident' if is_accident else 'non_accident',
-                    'confidence': confidence_final
-                },
-                'best_model': {
-                    'prediction': 'accident' if is_accident else 'non_accident', 
-                    'confidence': confidence_best
-                },
+                'final_model': {'prediction': 'accident' if is_accident else 'non_accident', 'confidence': confidence_final},
+                'best_model': {'prediction': 'accident' if is_accident else 'non_accident', 'confidence': confidence_best},
                 'accident_detected': is_accident,
                 'location': get_location() if is_accident else None,
                 'timestamp': datetime.now().isoformat(),
                 'note': 'Mock prediction - models not loaded'
             }
-            
-            # Log the result
-            result_entry = {
-                "timestamp": datetime.now().isoformat(),
-                "image_filename": file.filename,
-                **result
-            }
-            results_history.append(result_entry)
-            save_results_history()
-            
             return jsonify(result)
         
-        # Preprocess the uploaded file
-        file.seek(0)  # Reset file pointer
+        file.seek(0)
         img_array = preprocess_image(file)
         
-        # Run predictions
         pred_final, conf_final, is_acc_final = predict_accident(img_array, model_final)
         pred_best, conf_best, is_acc_best = predict_accident(img_array, model_best)
         
         accident_detected = is_acc_final or is_acc_best
         location = get_location() if accident_detected else None
         
-        # Prepare response
-        # FIX: Correctly convert confidence score (which may be a NumPy float) to a standard Python float
-        # before multiplying to get the percentage. This resolves the '0' confidence issue.
         result = {
             'final_model': {
                 'prediction': pred_final,
@@ -317,12 +277,7 @@ def predict():
             'timestamp': datetime.now().isoformat()
         }
         
-        # Log the result
-        result_entry = {
-            "timestamp": datetime.now().isoformat(),
-            "image_filename": file.filename,
-            **result
-        }
+        result_entry = {"timestamp": datetime.now().isoformat(), "image_filename": file.filename, **result}
         results_history.append(result_entry)
         save_results_history()
         
@@ -330,10 +285,7 @@ def predict():
     
     except Exception as e:
         logger.error(f"Prediction error: {str(e)}")
-        return jsonify({
-            'error': str(e),
-            'message': 'An error occurred during prediction'
-        }), 500
+        return jsonify({'error': str(e), 'message': 'An error occurred during prediction'}), 500
 
 @app.route('/status', methods=['GET'])
 def status():
@@ -349,9 +301,6 @@ def status():
             'status': '/status'
         }
     })
-
-# Load results history on startup
-load_results_history()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
