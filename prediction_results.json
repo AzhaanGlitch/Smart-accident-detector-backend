@@ -12,5 +12,35 @@
     },
     "accident_detected": true,
     "location": "City of New York, New York, United States"
+  },
+  {
+    "timestamp": "2025-09-17T17:04:20.662719",
+    "image_filename": "testing_image_01.webp",
+    "final_model": {
+      "prediction": "accident",
+      "confidence": 90.16380472504024
+    },
+    "best_model": {
+      "prediction": "accident",
+      "confidence": 91.09964472463783
+    },
+    "accident_detected": true,
+    "location": "City of New York, New York, United States",
+    "note": "Mock prediction - models not loaded"
+  },
+  {
+    "timestamp": "2025-09-17T19:12:10.152327",
+    "image_filename": "testing_image_01.webp",
+    "final_model": {
+      "prediction": "accident",
+      "confidence": 83.45904492020665
+    },
+    "best_model": {
+      "prediction": "accident",
+      "confidence": 88.46851298726553
+    },
+    "accident_detected": true,
+    "location": "City of New York, New York, United States",
+    "note": "Mock prediction - models not loaded"
   }
 ]

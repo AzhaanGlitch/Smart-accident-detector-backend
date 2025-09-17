@@ -12,22 +12,11 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Enhanced CORS configuration
-CORS(app, resources={
-    r"/*": {
-        "origins": "*",
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization", "Accept"],
-        "supports_credentials": False
-    }
-})
+# FIX: Simplified and robust CORS configuration.
+# This allows all origins for all routes and is the standard way to configure CORS.
+CORS(app)
 
-@app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    return response
+# NOTE: The manual @app.after_request decorator for CORS has been removed as it's redundant.
 
 # Global config
 img_size = (224, 224)
