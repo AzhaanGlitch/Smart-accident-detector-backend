@@ -3,7 +3,8 @@ services:
     name: smart-accident-detector
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --workers 1 --bind 0.0.0.0:$PORT --timeout 300 --worker-class sync --max-requests 100 --max-requests-jitter 10
+    # FIX: Added --timeout and --preload to prevent worker timeouts during slow model loading
+    startCommand: gunicorn app:app --workers 1 --bind 0.0.0.0:$PORT --timeout 300 --preload
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.12
