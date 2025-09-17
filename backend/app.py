@@ -12,11 +12,8 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# FIX: Simplified and robust CORS configuration.
-# This allows all origins for all routes and is the standard way to configure CORS.
+# Simplified and robust CORS configuration
 CORS(app)
-
-# NOTE: The manual @app.after_request decorator for CORS has been removed as it's redundant.
 
 # Global config
 img_size = (224, 224)
@@ -304,14 +301,16 @@ def predict():
         location = get_location() if accident_detected else None
         
         # Prepare response
+        # FIX: Correctly convert confidence score (which may be a NumPy float) to a standard Python float
+        # before multiplying to get the percentage. This resolves the '0' confidence issue.
         result = {
             'final_model': {
                 'prediction': pred_final,
-                'confidence': float(conf_final) * 100 if isinstance(conf_final, (int, float)) else 0
+                'confidence': float(conf_final) * 100
             },
             'best_model': {
                 'prediction': pred_best,
-                'confidence': float(conf_best) * 100 if isinstance(conf_best, (int, float)) else 0
+                'confidence': float(conf_best) * 100
             },
             'accident_detected': accident_detected,
             'location': location,
