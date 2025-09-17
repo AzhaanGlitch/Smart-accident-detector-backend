@@ -70,7 +70,7 @@ def load_models():
             'accident_detection_model.h5',
             'best_model.h5',
             os.path.join('backend', 'machine_learning', 'accident_detection_model.h5'),
-            os.path.join('backend', 'machine_learning', 'best_model.h5'),
+            os.path.join('backend','machine_learning', 'best_model.h5'),
             os.path.join('models', 'accident_detection_model.h5'),
             os.path.join('models', 'best_model.h5')
         ]
