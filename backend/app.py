@@ -21,9 +21,34 @@ FINAL_MODEL_PATH = os.path.join('machine_learning', 'accident_detection_model.h5
 BEST_MODEL_PATH = os.path.join('machine_learning', 'best_model.h5')
 RESULTS_LOG_PATH = 'prediction_results.json'
 
-# Initialize models as None - DON'T load them on startup
+# Initialize models as None
 model_final = None
 model_best = None
+
+# Try to load models with error handling
+def load_models():
+    global model_final, model_best
+    
+    try:
+        if os.path.exists(FINAL_MODEL_PATH):
+            model_final = tf.keras.models.load_model(FINAL_MODEL_PATH)
+            print(f"Final model loaded successfully from {FINAL_MODEL_PATH}")
+        else:
+            print(f"Final model not found at {FINAL_MODEL_PATH}")
+    except Exception as e:
+        print(f"Error loading final model: {e}")
+
+    try:
+        if os.path.exists(BEST_MODEL_PATH):
+            model_best = tf.keras.models.load_model(BEST_MODEL_PATH)
+            print(f"Best model loaded successfully from {BEST_MODEL_PATH}")
+        else:
+            print(f"Best model not found at {BEST_MODEL_PATH}")
+    except Exception as e:
+        print(f"Error loading best model: {e}")
+
+# Load models on startup
+load_models()
 
 # Load results history
 results_history = []
@@ -34,32 +59,6 @@ if os.path.exists(RESULTS_LOG_PATH):
     except Exception as e:
         print(f"Error loading results history: {e}")
         results_history = []
-
-def load_model_if_needed(model_type='final'):
-    """Load model only when needed (lazy loading)"""
-    global model_final, model_best
-    
-    if model_type == 'final' and model_final is None:
-        try:
-            if os.path.exists(FINAL_MODEL_PATH):
-                print("Loading final model...")
-                model_final = tf.keras.models.load_model(FINAL_MODEL_PATH)
-                print("Final model loaded successfully!")
-            else:
-                print(f"Final model not found at {FINAL_MODEL_PATH}")
-        except Exception as e:
-            print(f"Error loading final model: {e}")
-    
-    elif model_type == 'best' and model_best is None:
-        try:
-            if os.path.exists(BEST_MODEL_PATH):
-                print("Loading best model...")
-                model_best = tf.keras.models.load_model(BEST_MODEL_PATH)
-                print("Best model loaded successfully!")
-            else:
-                print(f"Best model not found at {BEST_MODEL_PATH}")
-        except Exception as e:
-            print(f"Error loading best model: {e}")
 
 def save_results_history():
     try:
@@ -100,15 +99,14 @@ def get_location():
 @app.route('/', methods=['GET'])
 def health_check():
     """Health check endpoint"""
+    model_status = {
+        'final_model_loaded': model_final is not None,
+        'best_model_loaded': model_best is not None
+    }
     return jsonify({
         'status': 'running',
         'message': 'Smart Accident Detector API is running',
-        'models': {
-            'final_model_path_exists': os.path.exists(FINAL_MODEL_PATH),
-            'best_model_path_exists': os.path.exists(BEST_MODEL_PATH),
-            'final_model_loaded': model_final is not None,
-            'best_model_loaded': model_best is not None
-        }
+        'models': model_status
     })
 
 @app.route('/predict', methods=['POST'])
@@ -120,15 +118,11 @@ def predict():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
     
+    # Check if at least one model is loaded
+    if model_final is None and model_best is None:
+        return jsonify({'error': 'No models available for prediction'}), 500
+    
     try:
-        # Load models only when prediction is requested (lazy loading)
-        load_model_if_needed('final')
-        load_model_if_needed('best')
-        
-        # Check if at least one model is loaded
-        if model_final is None and model_best is None:
-            return jsonify({'error': 'No models available for prediction'}), 500
-        
         # Preprocess the uploaded file
         file.seek(0)  # Reset file pointer
         img_array = preprocess_image(file)
