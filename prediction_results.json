@@ -1,0 +1,16 @@
+[
+  {
+    "timestamp": "2025-09-17T16:27:16.453260",
+    "image_filename": "testing_image_01.webp",
+    "final_model": {
+      "prediction": "accident",
+      "confidence": 99.46713536046445
+    },
+    "best_model": {
+      "prediction": "accident",
+      "confidence": 99.46713536046445
+    },
+    "accident_detected": true,
+    "location": "City of New York, New York, United States"
+  }
+]
